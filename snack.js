@@ -17,11 +17,11 @@ async function getDashboardData(query) {
         const airport = promise3[0] || {}
 
         return {
-            city: destination.name,
-            country: destination.country,
-            temperature: weather.temperature,
-            weather: weather.weather_description,
-            airport: airport.name
+            city: destination.name || null,
+            country: destination.country || null,
+            temperature: weather.temperature || null,
+            weather: weather.weather_description || null,
+            airport: airport.name || null
         }
     } catch (error) {
         console.error(error)
@@ -29,13 +29,16 @@ async function getDashboardData(query) {
     }
 }
 
-getDashboardData('london')
+getDashboardData("vienna")
     .then(data => {
-        console.log('Dasboard data:', data);
-        console.log(
-            `${data.city} is in ${data.country}.\n` +
-            `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n` +
-            `The main airport is ${data.airport}.\n`
-        );
+        console.log("Dashboard data:", data)
+        let output = `${data.city} is in ${data.country}.\n`
+        if (data.temperature !== null && data.weather !== null) {
+            output += `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n`
+        }
+        if (data.airport !== "Unknown") {
+            output += `The main airport is ${data.airport}.\n`
+        }
+        console.log(output)
     })
-    .catch(error => console.error(error));
+    .catch(error => console.error(error))
