@@ -6,39 +6,63 @@ async function fetchJson(url) {
 
 async function getDashboardData(query) {
     try {
-        const [promise1, promise2, promise3] = await Promise.all([
-            fetchJson(`https://boolean-spec-frontend.vercel.app/freetestapi/destinations?search=${query}`),
-            fetchJson(`https://boolean-spec-frontend.vercel.app/freetestapi/weathers?search=${query}`),
-            fetchJson(`https://boolean-spec-frontend.vercel.app/freetestapi/airports?search=${query}`)
-        ])
+        const destinationsPromise = fetchJson(`https://boolean-spec-frontend.vercel.app/freetestapi/destinations?search=${query}`)
+        const weathersPromise = fetchJson(`https://boolean-spec-frontend.vercel.app/freetestapi/weathers?search=${query}`)
+        const airportsPromise = fetchJson(`https://boolean-spec-frontend.vercel.app/freetestapi/airports?search=${query}`)
 
-        const destination = promise1[0] || {}
-        const weather = promise2[0] || {}
-        const airport = promise3[0] || {}
+        const promises = [destinationsPromise, weathersPromise, airportsPromise]
+        const [destinationsResult, weathersResult, airportsResult] = await Promise.allSettled(promises)
 
-        return {
-            city: destination.name || null,
-            country: destination.country || null,
-            temperature: weather.temperature || null,
-            weather: weather.weather_description || null,
-            airport: airport.name || null
+        const data = {}
+
+        if (destinationsResult.status === "rejected") {
+            console.error(`Errore in destinations: `, destinationsResult.reason)
+            data.city = null
+            data.country = null
+        } else {
+            const destination = destinationsResult.value[0]
+            data.city = destination ? destination.name : null
+            data.country = destination ? destination.country : null
         }
-    } catch (error) {
-        console.error(error)
-        return null
+
+        if (weathersResult.status === "rejected") {
+            console.error(`Errore in weathers: `, weathersResult.reason)
+            data.temperature = null
+            data.weather = null
+        } else {
+            const weather = weathersResult.value[0]
+            data.temperature = weather ? weather.temperature : null
+            data.weather = weather ? weather.weather_description : null
+        }
+
+        if (airportsResult.status === "rejected") {
+            console.error(`Errore in airports: `, airportsResult.reason)
+            data.airport = null
+        } else {
+            const airport = airportsResult.value[0]
+            data.airport = airport ? airport.name : null
+        }
+
+        return data
+
+    } catch (err) {
+        throw new Error(`Errore nel recupero dei dati: ${err.message}`)
     }
 }
 
-getDashboardData("vienna")
+getDashboardData('london')
     .then(data => {
-        console.log("Dashboard data:", data)
-        let output = `${data.city} is in ${data.country}.\n`
+        console.log('Dashboard data:', data);
+        let phrase = ""
+        if (data.city !== null && data.country !== null) {
+            phrase += `${data.city} is in ${data.country}.\n`
+        }
         if (data.temperature !== null && data.weather !== null) {
-            output += `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n`
+            phrase += `Today there are ${data.temperature} degrees and the weather is ${data.weather}.\n`
         }
-        if (data.airport !== "Unknown") {
-            output += `The main airport is ${data.airport}.\n`
+        if (data.airport !== null) {
+            phrase += `The main airport is ${data.airport}.\n`
         }
-        console.log(output)
+        console.log(phrase)
     })
-    .catch(error => console.error(error))
+    .catch(error => console.error(error));
